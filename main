@@ -1,0 +1,116 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_WORD_LEN 100
+#define MAX_TEXT_LEN 10000
+
+
+void to_lowercase(char *str) {
+    for (int i = 0; str[i]; i++) {
+        str[i] = tolower(str[i]);
+    }
+}
+
+
+void remove_punctuation(char *str) {
+    char *src = str, *dst = str;
+    while (*src) {
+        if (ispunct((unsigned char)*src)) {
+            src++;
+        } else if (src == dst) {
+            src++;
+            dst++;
+        } else {
+            *dst++ = *src++;
+        }
+    }
+    *dst = '\0';
+}
+
+
+typedef struct {
+    char word[MAX_WORD_LEN];
+    int count;
+} WordFreq;
+
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s <file> <number_of_occurrences>\n", argv[0]);
+        return 1;
+    }
+
+    char *filename = argv[1];
+    int target_count = atoi(argv[2]);
+
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        perror("Could not open file");
+        return 1;
+    }
+
+    char text[MAX_TEXT_LEN];
+    fread(text, 1, MAX_TEXT_LEN, file);
+    fclose(file);
+
+    char *token;
+    char delimiters[] = " \n";
+    WordFreq word_freqs[MAX_TEXT_LEN] = {0};
+    int word_count = 0;
+
+ 
+    token = strtok(text, delimiters);
+    while (token != NULL) {
+        to_lowercase(token);
+        remove_punctuation(token);
+
+ 
+        int found = 0;
+        for (int i = 0; i < word_count; i++) {
+            if (strcmp(word_freqs[i].word, token) == 0) {
+                word_freqs[i].count++;
+                found = 1;
+                break;
+            }
+        }
+
+       
+        if (!found) {
+            strcpy(word_freqs[word_count].word, token);
+            word_freqs[word_count].count = 1;
+            word_count++;
+        }
+
+        token = strtok(NULL, delimiters);
+    }
+
+
+    file = fopen(filename, "r");
+    fread(text, 1, MAX_TEXT_LEN, file);
+    fclose(file);
+
+    token = strtok(text, delimiters);
+    while (token != NULL) {
+        to_lowercase(token);
+        remove_punctuation(token);
+
+        int skip = 0;
+        for (int i = 0; i < word_count; i++) {
+            if (strcmp(word_freqs[i].word, token) == 0 && word_freqs[i].count == target_count) {
+                skip = 1;
+                break;
+            }
+        }
+
+        if (!skip) {
+            printf("%s ", token);
+        }
+
+        token = strtok(NULL, delimiters);
+    }
+
+    printf("\n");
+
+    return 0;
+}
